@@ -1,0 +1,7 @@
+name: HomeSign
+author: Hejki
+main: org.hejki.bukkit.homesign.HomeSign
+version: ${project.version}
+commands:
+  home:
+    description: Teleport player to its home location
