@@ -6,7 +6,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Vector;
 
 /**
  * HomeSign plugin, register edit sign listener for home location set. Use command /home to teleport
@@ -17,19 +16,36 @@ import org.bukkit.util.Vector;
 public class HomeSign extends JavaPlugin {
     @Override
     public void onEnable() {
-        saveDefaultConfig();
-
         getServer().getPluginManager().registerEvents(new PlaceSignListener(this), this);
         super.onEnable();
+        log("Enabled successfully!");
+    }
+
+    public void log(String message) {
+        System.out.println(String.format("[%s] %s", getName(), message));
     }
 
     /**
      * Save player's current location as its home location.
      */
     public void saveHomeLocation(Player player) {
-        getConfig().set("homes." + player.getName() + ".location", player.getLocation().toVector());
-        getConfig().set("homes." + player.getName() + ".world", player.getWorld().getName());
+        Location location = player.getLocation();
+
+        setConfig(player, "world", player.getWorld().getName());
+        setConfig(player, "location.x", location.getX());
+        setConfig(player, "location.y", location.getY());
+        setConfig(player, "location.z", location.getZ());
+        setConfig(player, "location.f", location.getYaw());
+        setConfig(player, "location.p", location.getPitch());
         saveConfig();
+    }
+
+    private void setConfig(Player player, String config, Object value) {
+        getConfig().set(getConfigKey(player, config), value);
+    }
+
+    private String getConfigKey(Player player, String config) {
+        return String.format("homes.%s.%s", player.getName(), config);
     }
 
     @Override
@@ -37,14 +53,23 @@ public class HomeSign extends JavaPlugin {
         if ("home".equals(label)) {
             Player player = getServer().getPlayer(sender.getName());
 
-            Vector loc = getConfig().getVector("homes." + player.getName() + ".location");
             String worldName = getConfig().getString("homes." + player.getName() + ".world");
-            if (loc == null || worldName == null) {
+
+            if (worldName == null) {
                 sender.sendMessage("You have not set home location.");
                 sender.sendMessage("Place sign with [home] text to set your home location.");
             } else {
                 World world = getServer().getWorld(worldName);
-                player.teleport(new Location(world, loc.getX(), loc.getY(), loc.getZ()));
+                double x = getConfig().getDouble(getConfigKey(player, "location.x"));
+                double y = getConfig().getDouble(getConfigKey(player, "location.y"));
+                double z = getConfig().getDouble(getConfigKey(player, "location.z"));
+                float yaw = (float) getConfig().getDouble(getConfigKey(player, "location.f"));
+                float pitch = (float) getConfig().getDouble(getConfigKey(player, "location.p"));
+
+                Location location = new Location(world, x, y, z, yaw, pitch);
+                player.teleport(location);
+                player.getLocation().setPitch(pitch);
+                player.getLocation().setYaw(yaw);
             }
             return true;
         }
